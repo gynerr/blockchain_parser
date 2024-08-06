@@ -26,37 +26,43 @@ if config_data['format_file'] == 'csv':
 
 def format_data(data: list) -> list:
     logger.info('Форматирование данных!')
-    if config_data['address_format'] == '0x':
+    if config_data['address_format'] == '0x' and data:
         if config_data['remove_doubles'] == True:
             return list(set(data))
         else:
             return data
-    elif config_data['address_format'] != '0x':
+    elif config_data['address_format'] != '0x'and data:
         data = list(map(lambda x: x[2:], data))
         if config_data['remove_doubles'] == True:
             return list(set(data))
         else:
             return list(data)
+    elif data is None:
+        logger.info('Данных для редактирования не обнаружено!')
 
 
-def write_data(data: list) -> None:
-    logger.info('Вывод')
+def write_data(data: list, start: int, end: int) -> None:
     if not os.path.exists(config_data['folder_name']):
         os.makedirs(config_data['folder_name'])
-    if config_data['format_file'] == 'csv':
+    if config_data['format_file'] == 'csv' and data:
         with open(
-                f'{config_data["folder_name"]}/{config_data["blockchain_name"]}_{config_data["file_name"]}_{config_data["start_block"]}-{config_data["end_block"]}.csv',
+                f'{config_data["folder_name"]}/{config_data["blockchain_name"]}_{config_data["file_name"]}_{start}-{end}.csv',
                 'a', newline='\n',
                 encoding='Utf-8') as file:
             writer = csv.writer(file)
+            logger.info('Вывод')
             writer.writerows(list(map(lambda x: [x], data)))
-    elif config_data['format_file'] == 'txt':
+    elif config_data['format_file'] == 'txt' and data:
         with open(os.path.join(config_data['folder_name'],
-                               f'{config_data["blockchain_name"]}_{config_data["file_name"]}_{config_data["start_block"]}-{config_data["end_block"]}.txt'),
+                               f'{config_data["blockchain_name"]}_{config_data["file_name"]}_{start}-{end}.txt'),
                   'a',
                   encoding='Utf-8') as file:
+            logger.info('Вывод')
             for i in data:
                 file.write(i + '\n')
+    elif data is None:
+        logger.info('Данных для вывода не обнаружено!')
+
 
 
 def pasrse_pages(pages, block_transactions_url) -> list:
@@ -102,12 +108,12 @@ def check_count_requests(count: int):
     else:
         return count
 
-
 def get_data(url: str, start_block: int, end_block: int) -> list:
+    start = start_block
+    count_string = 0
     result = []
     requests_count = 0
     blocks = range(start_block, end_block + 1)
-    count_string = 0
     for block in blocks:
         block_transactions_url = f'{url}/txs?block={block}'
         logger.info(f'Ожидание ответа от страницы с блоком {block}!')
@@ -126,6 +132,7 @@ def get_data(url: str, start_block: int, end_block: int) -> list:
             requests_count += int(pages)
             requests_count = check_count_requests(requests_count)
             result.extend(rs)
+            count_string += len(result)
         else:
             data_table = response_soup.find('body')
             if data_table.find('table'):
@@ -158,14 +165,19 @@ def get_data(url: str, start_block: int, end_block: int) -> list:
                 else:
                     logger.warning('Данные не получены из эмулятора браузера!Смотри логи!!')
                     logger.error(f'Страница с блоком номер{block_transactions_url}/n{response_soup.title.text}')
+        logger.info(count_string)
         if count_string > config_data['line_count']:
-            logger.warning('Кол-во строк превышает параметр line_count в конфигурационном файле!')
-            break
-            return result
-    return result
+            logger.info('Кол-во строк превышает параметр line_count в конфигурационном файле!')
+            write_data(format_data(result), start, block)
+            start = block + 1
+            result = []
+            count_string = 0
+        else:
+            logger.info(count_string)
+    write_data(format_data(result), start, config_data['end_block'])
 
 
 if __name__ == '__main__':
-    write_data(format_data(get_data(config_data['url'], config_data['start_block'], config_data['end_block'])))
+    get_data(config_data['url'], config_data['start_block'], config_data['end_block'])
 
 

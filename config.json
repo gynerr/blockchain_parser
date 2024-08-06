@@ -1,12 +1,12 @@
 {
   "blockchain_name": "bitcoin",
   "url": "https://etherscan.io/",
-  "start_block": 17449338,
-  "end_block":  17449349,
-  "folder_name": "NewFolder",
-  "file_name": "polygonscan",
-  "line_count": 12222,
-  "address_format": "",
+  "start_block": 17487700,
+  "end_block":  17487726,
+  "folder_name": "TestFolder",
+  "file_name": "polygonscan__",
+  "line_count": 1,
+  "address_format": "0x",
   "remove_doubles": true,
   "format_file": "txt"
 }
